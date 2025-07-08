@@ -1,6 +1,5 @@
-import { auth } from "@/auth"
-import { canMakeQuery, userQueryUsed } from "@/lib/query"
-import { headers } from "next/headers"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+// Mock query functions imported above
 import { type NextRequest, NextResponse } from "next/server"
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
@@ -15,17 +14,17 @@ const requestSchema = z.object({
 export async function POST(request: NextRequest) {
 	if (!isApiChecker(request)) {
 		try {
-			const user = await auth.api.getSession({ headers: await headers() })
+			const user = getMockSession()
 			if (!user) throw new APIError("Unauthorized", 401)
 
 			const body = await request.json()
 			const { input, type, page } = requestSchema.parse(body)
 
-			if (!(await canMakeQuery(user.user.id, "breachbase"))) {
+			if (!(await canMakeMockQuery())) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
-			await userQueryUsed(user.user.id, "breachbase")
+			await mockUserQueryUsed()
 
 			const apiUrl = BREACHBASE_API_URL
 			const apiKey = process.env.BREACHBASE_API_KEY!

@@ -1,10 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
-import { headers } from "next/headers"
-import { canMakeQuery, userQueryUsed } from "@/lib/query"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+// Mock query functions imported above
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
-import { getActiveSubscription } from "@/lib/subscription"
 import { INF0SEC_API_URL, INF0SEC_VALID_MODULES } from "@/lib/text"
 
 const requestSchema = z.object({
@@ -18,27 +16,17 @@ export async function POST(request: NextRequest) {
 
 	if (!isApiChecker(request)) {
 		try {
-			const user = await auth.api.getSession({ headers: await headers() })
-			if (!user) {
-				throw new APIError("Unauthorized", 401)
-			}
+			const user = getMockSession()
 
-			const subscription = await getActiveSubscription(user.user.id)
-			if (!subscription) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Active subscription required",
-					},
 					{ status: 403 },
 				)
 			}
 
-			if (!(await canMakeQuery(user.user.id, "inf0sec"))) {
+			if (!(await canMakeMockQuery())) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
-			await userQueryUsed(user.user.id, "inf0sec")
+			await mockUserQueryUsed()
 
 			const url = `${INF0SEC_API_URL}?module=${module}&q=${encodeURIComponent(query)}&apikey=${process.env.INF0SEC_API_KEY}`
 

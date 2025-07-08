@@ -1,12 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
-import { headers } from "next/headers"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
 import CallerAPIClient from "@/services/callerapi/client"
 import { HttpProxyAgent } from "http-proxy-agent"
-import { canMakeQuery, userQueryUsed } from "@/lib/query"
+// Mock query functions imported above
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
-import { getActiveSubscription } from "@/lib/subscription"
 
 const requestSchema = z.object({
 	phone: z.string().min(1),
@@ -18,27 +16,17 @@ export async function POST(request: NextRequest) {
 
 	if (!isApiChecker(request)) {
 		try {
-			const user = await auth.api.getSession({ headers: await headers() })
-			if (!user) {
-				throw new APIError("Unauthorized", 401)
-			}
+			const user = getMockSession()
 
-			const subscription = await getActiveSubscription(user.user.id)
-			if (!subscription) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Active subscription required",
-					},
 					{ status: 403 },
 				)
 			}
 
-			if (!(await canMakeQuery(user.user.id, "callerapi"))) {
+			if (!(await canMakeMockQuery())) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
-			await userQueryUsed(user.user.id, "callerapi")
+			await mockUserQueryUsed()
 
 			const apiKey = process.env.CALLERAPI_API_KEY
 			if (!apiKey) {

@@ -1,7 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { headers } from "next/headers"
 import arcjet, { detectBot } from "@arcjet/next"
-import { auth } from "./auth"
 
 const aj = arcjet({
 	key: "ajkey_01jx3581wjf32vmaadrqpygatk",
@@ -20,21 +18,10 @@ export async function middleware(request: NextRequest) {
 		return NextResponse.json({ error: "Bot detected" }, { status: 403 })
 	}
 
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	})
-
-	if (!session && request.nextUrl.pathname.includes("/dashboard")) {
-		return NextResponse.redirect(new URL("/sign-in", request.url))
-	}
-
-	if (request.nextUrl.pathname.includes("/dashboard/admin")) {
-		const roles = session!.user.role?.split(",") || []
-		if (!roles.includes("admin")) {
-			return NextResponse.redirect(new URL("/dashboard", request.url))
-		}
-	}
-
+	// Authentication disabled - allow all requests to proceed
+	// Previously this middleware would redirect users to /sign-in if not authenticated
+	// and check admin roles for /dashboard/admin routes
+	
 	return NextResponse.next()
 }
 

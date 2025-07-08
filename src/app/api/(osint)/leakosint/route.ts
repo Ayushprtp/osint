@@ -1,11 +1,9 @@
-import { auth } from "@/auth"
-import { canMakeQuery, userQueryUsed } from "@/lib/query"
-import { headers } from "next/headers"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+// Mock query functions imported above
 import { type NextRequest, NextResponse } from "next/server"
 import { LEAKOSINT_API_URL } from "@/lib/text"
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
-import { getActiveSubscription } from "@/lib/subscription"
 
 const requestSchema = z.object({
 	query: z.string().min(1),
@@ -17,28 +15,17 @@ export async function POST(request: NextRequest) {
 
 	if (!isApiChecker(request)) {
 		try {
-			const user = await auth.api.getSession({ headers: await headers() })
-			if (!user) {
-				throw new APIError("Unauthorized", 401)
-			}
+			const user = getMockSession()
 
-			const subscription = await getActiveSubscription(user.user.id)
-
-			if (!subscription) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Active subscription required",
-					},
 					{ status: 403 },
 				)
 			}
 
-			if (!(await canMakeQuery(user.user.id, "leakosint"))) {
+			if (!(await canMakeMockQuery())) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
-			await userQueryUsed(user.user.id, "leakosint")
+			await mockUserQueryUsed()
 
 			const response = await fetch(LEAKOSINT_API_URL, {
 				method: "POST",

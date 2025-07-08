@@ -1,10 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
-import { headers } from "next/headers"
-import { canMakeQuery, userQueryUsed } from "@/lib/query"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+// Mock query functions imported above
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
-import { getActiveSubscription } from "@/lib/subscription"
 
 const requestSchema = z.object({
 	ip: z.string().ip().optional(),
@@ -37,15 +35,8 @@ async function fetchIPInfo(ip: string) {
 export async function POST(request: NextRequest) {
 	if (!isApiChecker(request)) {
 		try {
-			const user = await auth.api.getSession({ headers: await headers() })
-			if (!user) {
-				throw new APIError("Unauthorized", 401)
-			}
+			const user = getMockSession()
 
-			const subscription = await getActiveSubscription(user.user.id)
-			if (!subscription) {
-				throw new APIError("Active subscription required", 403)
-			}
 
 			const body = await request.json()
 			const { ip } = requestSchema.parse(body)
@@ -54,11 +45,11 @@ export async function POST(request: NextRequest) {
 			const clientIp = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1"
 			const ipAddress = ip || clientIp
 
-			if (!(await canMakeQuery(user.user.id, "ipinfo"))) {
+			if (!(await canMakeMockQuery())) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
-			await userQueryUsed(user.user.id, "ipinfo")
+			await mockUserQueryUsed()
 
 			try {
 				const ipInfoData = await fetchIPInfo(ipAddress)

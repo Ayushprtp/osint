@@ -1,10 +1,8 @@
-import { auth } from "@/auth"
-import { canMakeQuery, userQueryUsed } from "@/lib/query"
-import { headers } from "next/headers"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+// Mock query functions imported above
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { APIError, isApiChecker } from "@/lib/utils"
-import { getActiveSubscription } from "@/lib/subscription"
 
 const SEON_API_BASE_URL = "https://api.seon.io/SeonRestService"
 
@@ -33,23 +31,13 @@ export async function POST(request: NextRequest) {
 
 	if (!isApiChecker(request)) {
 		try {
-			const user = await auth.api.getSession({ headers: await headers() })
-			if (!user) {
-				throw new APIError("Unauthorized", 401)
-			}
+			const user = getMockSession()
 
-			const subscription = await getActiveSubscription(user.user.id)
-			if (!subscription) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Active subscription required",
-					},
 					{ status: 403 },
 				)
 			}
 
-			if (!(await canMakeQuery(user.user.id, "seon"))) {
+			if (!(await canMakeMockQuery())) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
@@ -69,7 +57,7 @@ export async function POST(request: NextRequest) {
 					break
 			}
 
-			await userQueryUsed(user.user.id, "seon")
+			await mockUserQueryUsed()
 
 			const fetchOptions: RequestInit = {
 				method: type === "ip" ? "GET" : "POST",

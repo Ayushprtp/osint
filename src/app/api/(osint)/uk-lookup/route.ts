@@ -1,10 +1,8 @@
-import { auth } from "@/auth"
-import { canMakeQuery, userQueryUsed } from "@/lib/query"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+// Mock query functions imported above
 import { APIError, isApiChecker } from "@/lib/utils"
-import { headers } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { getActiveSubscription } from "@/lib/subscription"
 
 function parseLeakPeekResponse(text: string) {
 	const nameMatch = text.match(/NAME:\s*\n([\s\S]*?)\s*\nADDRESS:/)
@@ -38,25 +36,18 @@ const requestSchema = z.object({
 export async function POST(req: NextRequest) {
 	if (!isApiChecker(req)) {
 		try {
-			const user = await auth.api.getSession({ headers: await headers() })
+			const user = getMockSession()
 			if (!user) throw new APIError("Unauthorized", 401)
 
-			const subscription = await getActiveSubscription(user.user.id)
-			if (!subscription) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Active subscription required",
-					},
 					{ status: 403 },
 				)
 			}
 
-			if (!(await canMakeQuery(user.user.id, "uk-lookup"))) {
+			if (!(await canMakeMockQuery())) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
-			await userQueryUsed(user.user.id, "uk-lookup")
+			await mockUserQueryUsed()
 
 			const body = await req.json()
 			const { fname, sname, location } = requestSchema.parse(body)

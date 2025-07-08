@@ -1,10 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
-import { headers } from "next/headers"
-import { canMakeQuery, userQueryUsed } from "@/lib/query"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
 import { APIError } from "@/lib/utils"
 import { z } from "zod"
-import { getActiveSubscription } from "@/lib/subscription"
 import { INF0SEC_API_URL } from "@/lib/text"
 
 const RUST_API_URL = "http://167.99.206.172:5000"
@@ -12,21 +9,8 @@ const OSINTSOLUTIONS_API_URL = "https://osintsolutions.org/api/searchusygdytafsd
 
 export async function POST(request: NextRequest) {
 	try {
-		const user = await auth.api.getSession({ headers: await headers() })
-		if (!user) {
-			throw new APIError("Unauthorized", 401)
-		}
-
-		const subscription = await getActiveSubscription(user.user.id)
-		if (!subscription) {
-			return NextResponse.json(
-				{
-					success: false,
-					error: "Active subscription required",
-				},
-				{ status: 403 },
-			)
-		}
+		// Authentication disabled - using mock session
+		const user = getMockSession()
 
 		const body = await request.json()
 
@@ -41,11 +25,11 @@ export async function POST(request: NextRequest) {
 			try {
 				const discordId = discordIdSchema.parse(body.discordid)
 
-				if (!(await canMakeQuery(user.user.id, "discord-search"))) {
+				if (!(await canMakeMockQuery())) {
 					throw new APIError("Query limit exceeded", 429)
 				}
 
-				await userQueryUsed(user.user.id, "discord-search")
+				await mockUserQueryUsed()
 
 				const apiResponse = await fetch(`https://oathnet.ru/api/discord-to-roblox?discordid=${discordId}`, {
 					headers: {
@@ -85,11 +69,11 @@ export async function POST(request: NextRequest) {
 			try {
 				const discordId = discordIdSchema.parse(body.query)
 
-				if (!(await canMakeQuery(user.user.id, "discord-search"))) {
+				if (!(await canMakeMockQuery())) {
 					throw new APIError("Query limit exceeded", 429)
 				}
 
-				await userQueryUsed(user.user.id, "discord-search")
+				await mockUserQueryUsed()
 
 				const apiResponse = await fetch(`https://oathnet.ru/api/breach?query=${discordId}`, {
 					headers: {
@@ -126,11 +110,11 @@ export async function POST(request: NextRequest) {
 			try {
 				const username = usernameSchema.parse(body.username)
 
-				if (!(await canMakeQuery(user.user.id, "roblox-search"))) {
+				if (!(await canMakeMockQuery())) {
 					throw new APIError("Query limit exceeded", 429)
 				}
 
-				await userQueryUsed(user.user.id, "roblox-search")
+				await mockUserQueryUsed()
 
 				const apiResponse = await fetch(
 					`https://oathnet.ru/api/roblox-userinfo?username=${encodeURIComponent(username)}`,
@@ -173,11 +157,11 @@ export async function POST(request: NextRequest) {
 			try {
 				const discordId = discordIdSchema.parse(body.query)
 
-				if (!(await canMakeQuery(user.user.id, "inf0sec"))) {
+				if (!(await canMakeMockQuery())) {
 					throw new APIError("Query limit exceeded", 429)
 				}
 
-				await userQueryUsed(user.user.id, "inf0sec")
+				await mockUserQueryUsed()
 
 				const url = `${INF0SEC_API_URL}?module=discord&q=${encodeURIComponent(discordId)}&apikey=${process.env.INF0SEC_API_KEY}`
 
@@ -215,11 +199,11 @@ export async function POST(request: NextRequest) {
 			try {
 				const discordId = discordIdSchema.parse(body.query)
 
-				if (!(await canMakeQuery(user.user.id, "discord-search"))) {
+				if (!(await canMakeMockQuery())) {
 					throw new APIError("Query limit exceeded", 429)
 				}
 
-				await userQueryUsed(user.user.id, "discord-search")
+				await mockUserQueryUsed()
 
 				const url = `${RUST_API_URL}/api/discord/lookup?key=${process.env.RUST_API_KEY}&id=${discordId}`
 
@@ -254,11 +238,11 @@ export async function POST(request: NextRequest) {
 			try {
 				const steamId = steamIdSchema.parse(body.query)
 
-				if (!(await canMakeQuery(user.user.id, "steam-search"))) {
+				if (!(await canMakeMockQuery())) {
 					throw new APIError("Query limit exceeded", 429)
 				}
 
-				await userQueryUsed(user.user.id, "steam-search")
+				await mockUserQueryUsed()
 
 				const url = `${RUST_API_URL}/api/steam/lookup?key=${process.env.RUST_API_KEY}&id=${steamId}`
 
@@ -291,11 +275,11 @@ export async function POST(request: NextRequest) {
 			try {
 				const discordId = body.query
 
-				if (!(await canMakeQuery(user.user.id, "osintsolutions-search"))) {
+				if (!(await canMakeMockQuery())) {
 					throw new APIError("Query limit exceeded for OSINTsolutions search", 429)
 				}
 
-				await userQueryUsed(user.user.id, "osintsolutions-search")
+				await mockUserQueryUsed()
 
 				const url = `${OSINTSOLUTIONS_API_URL}?apikey=${process.env.OSINTSOLUTIONS_API_KEY}&query=${encodeURIComponent(discordId)}`
 				const apiResponse = await fetch(url)
