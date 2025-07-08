@@ -25,16 +25,21 @@ export async function POST(request: NextRequest) {
 			// Track query usage
 			await mockUserQueryUsed()
 
-			// Mock response - replace with actual API call
+			// Mock response - return empty data since Rutify expects direct data
 			const mockData = {
-				query: query,
-				status: "success",
-				message: "Authentication has been disabled - this is a mock response",
-				results: [],
-				timestamp: new Date().toISOString()
+				name: null,
+				firstName: null,
+				lastName: null,
+				rut: null,
+				gender: null,
+				address: null,
+				city: null,
+				phoneNumber: null,
+				emailAddress: null,
+				birthDate: null
 			}
 
-			return NextResponse.json({ success: true, data: mockData })
+			return NextResponse.json(mockData)
 		} catch (error) {
 			if (error instanceof z.ZodError) {
 				return NextResponse.json(
@@ -72,14 +77,19 @@ export async function POST(request: NextRequest) {
 			const { query } = requestSchema.parse(body)
 
 			const mockData = {
-				query: query,
-				status: "success",
-				message: "API checker bypass - authentication disabled",
-				results: [],
-				timestamp: new Date().toISOString()
+				name: null,
+				firstName: null,
+				lastName: null,
+				rut: null,
+				gender: null,
+				address: null,
+				city: null,
+				phoneNumber: null,
+				emailAddress: null,
+				birthDate: null
 			}
 
-			return NextResponse.json({ success: true, data: mockData })
+			return NextResponse.json(mockData)
 		} catch (error) {
 			if (error instanceof z.ZodError) {
 				return NextResponse.json(

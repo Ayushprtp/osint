@@ -25,16 +25,44 @@ export async function POST(request: NextRequest) {
 			// Track query usage
 			await mockUserQueryUsed()
 
-			// Mock response - replace with actual API call
+			// Mock response in the expected VinAudit format
 			const mockData = {
-				query: query,
-				status: "success",
-				message: "Authentication has been disabled - this is a mock response",
-				results: [],
-				timestamp: new Date().toISOString()
+				success: true,
+				data: {
+					id: `mock-${Date.now()}`,
+					vin: query,
+					date: new Date().toISOString(),
+					mode: "mock",
+					clean: true,
+					specs: {
+						Year: null,
+						Make: null,
+						Model: null,
+						Trim: null,
+						Engine: null,
+						Style: null,
+						"Made In": null,
+						"Fuel Type": null,
+						"Fuel Capacity": null,
+						"City Mileage": null,
+						"Highway Mileage": null,
+						"Overall Length": null,
+						"Overall Width": null,
+						"Overall Height": null,
+						"Gross Weight": null,
+						"Standard Seating": null,
+						MSRP: null,
+						"Invoice Price": null,
+						Description: "Mock VIN data - authentication disabled"
+					},
+					titles: [],
+					accidents: [],
+					salvage: [],
+					thefts: []
+				}
 			}
 
-			return NextResponse.json({ success: true, data: mockData })
+			return NextResponse.json(mockData)
 		} catch (error) {
 			if (error instanceof z.ZodError) {
 				return NextResponse.json(
@@ -72,14 +100,42 @@ export async function POST(request: NextRequest) {
 			const { query } = requestSchema.parse(body)
 
 			const mockData = {
-				query: query,
-				status: "success",
-				message: "API checker bypass - authentication disabled",
-				results: [],
-				timestamp: new Date().toISOString()
+				success: true,
+				data: {
+					id: `mock-${Date.now()}`,
+					vin: query,
+					date: new Date().toISOString(),
+					mode: "mock",
+					clean: true,
+					specs: {
+						Year: null,
+						Make: null,
+						Model: null,
+						Trim: null,
+						Engine: null,
+						Style: null,
+						"Made In": null,
+						"Fuel Type": null,
+						"Fuel Capacity": null,
+						"City Mileage": null,
+						"Highway Mileage": null,
+						"Overall Length": null,
+						"Overall Width": null,
+						"Overall Height": null,
+						"Gross Weight": null,
+						"Standard Seating": null,
+						MSRP: null,
+						"Invoice Price": null,
+						Description: "Mock VIN data - API checker bypass"
+					},
+					titles: [],
+					accidents: [],
+					salvage: [],
+					thefts: []
+				}
 			}
 
-			return NextResponse.json({ success: true, data: mockData })
+			return NextResponse.json(mockData)
 		} catch (error) {
 			if (error instanceof z.ZodError) {
 				return NextResponse.json(

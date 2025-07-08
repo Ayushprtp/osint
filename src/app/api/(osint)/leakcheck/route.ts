@@ -25,16 +25,16 @@ export async function POST(request: NextRequest) {
 			// Track query usage
 			await mockUserQueryUsed()
 
-			// Mock response - replace with actual API call
+			// Mock response in the expected format
 			const mockData = {
-				query: query,
-				status: "success",
-				message: "Authentication has been disabled - this is a mock response",
-				results: [],
-				timestamp: new Date().toISOString()
+				success: true,
+				found: 0,
+				quota: 100,
+				result: [],
+				message: "Authentication disabled - mock response"
 			}
 
-			return NextResponse.json({ success: true, data: mockData })
+			return NextResponse.json(mockData)
 		} catch (error) {
 			if (error instanceof z.ZodError) {
 				return NextResponse.json(
@@ -72,14 +72,14 @@ export async function POST(request: NextRequest) {
 			const { query } = requestSchema.parse(body)
 
 			const mockData = {
-				query: query,
-				status: "success",
-				message: "API checker bypass - authentication disabled",
-				results: [],
-				timestamp: new Date().toISOString()
+				success: true,
+				found: 0,
+				quota: 100,
+				result: [],
+				message: "API checker bypass - authentication disabled"
 			}
 
-			return NextResponse.json({ success: true, data: mockData })
+			return NextResponse.json(mockData)
 		} catch (error) {
 			if (error instanceof z.ZodError) {
 				return NextResponse.json(

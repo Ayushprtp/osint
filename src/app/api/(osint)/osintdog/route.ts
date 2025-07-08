@@ -25,16 +25,52 @@ export async function POST(request: NextRequest) {
 			// Track query usage
 			await mockUserQueryUsed()
 
-			// Mock response - replace with actual API call
+			// Mock response in the expected OSINTDog format
 			const mockData = {
-				query: query,
-				status: "success",
-				message: "Authentication has been disabled - this is a mock response",
-				results: [],
-				timestamp: new Date().toISOString()
+				success: true,
+				data: {
+					success: true,
+					credit: "100",
+					intelvault_results: {
+						success: true,
+						time_taken: 100,
+						results: []
+					},
+					snusbase_results: {
+						took: 10,
+						size: 0,
+						results: {}
+					},
+					leakcheck_results: {
+						success: true,
+						quota: 100,
+						found: 0,
+						result: []
+					},
+					breachbase_results: {
+						code: 200,
+						data: {
+							content: [],
+							status: "success"
+						},
+						message: "No results found"
+					},
+					hackcheck_results: {
+						code: 200,
+						data: {
+							data: {
+								databases: 0,
+								elapsed: "100ms",
+								found: 0,
+								results: []
+							}
+						},
+						message: "No results found"
+					}
+				}
 			}
 
-			return NextResponse.json({ success: true, data: mockData })
+			return NextResponse.json(mockData)
 		} catch (error) {
 			if (error instanceof z.ZodError) {
 				return NextResponse.json(
@@ -72,14 +108,50 @@ export async function POST(request: NextRequest) {
 			const { query } = requestSchema.parse(body)
 
 			const mockData = {
-				query: query,
-				status: "success",
-				message: "API checker bypass - authentication disabled",
-				results: [],
-				timestamp: new Date().toISOString()
+				success: true,
+				data: {
+					success: true,
+					credit: "100",
+					intelvault_results: {
+						success: true,
+						time_taken: 100,
+						results: []
+					},
+					snusbase_results: {
+						took: 10,
+						size: 0,
+						results: {}
+					},
+					leakcheck_results: {
+						success: true,
+						quota: 100,
+						found: 0,
+						result: []
+					},
+					breachbase_results: {
+						code: 200,
+						data: {
+							content: [],
+							status: "success"
+						},
+						message: "API checker bypass"
+					},
+					hackcheck_results: {
+						code: 200,
+						data: {
+							data: {
+								databases: 0,
+								elapsed: "100ms",
+								found: 0,
+								results: []
+							}
+						},
+						message: "API checker bypass"
+					}
+				}
 			}
 
-			return NextResponse.json({ success: true, data: mockData })
+			return NextResponse.json(mockData)
 		} catch (error) {
 			if (error instanceof z.ZodError) {
 				return NextResponse.json(
