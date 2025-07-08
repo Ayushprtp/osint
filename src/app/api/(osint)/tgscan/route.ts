@@ -1,11 +1,9 @@
-import { auth } from "@/auth"
-import { canMakeQuery, userQueryUsed } from "@/lib/query"
-import { headers } from "next/headers"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+// Mock query functions imported above
 import { type NextRequest, NextResponse } from "next/server"
 import { TGSCAN_SEARCH_API_URL } from "@/lib/text"
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
-import { getActiveSubscription } from "@/lib/subscription"
 
 const requestSchema = z.object({
 	query: z.string().min(1),
@@ -14,29 +12,19 @@ const requestSchema = z.object({
 export async function POST(request: NextRequest) {
 	if (!isApiChecker(request)) {
 		try {
-			const user = await auth.api.getSession({ headers: await headers() })
-			if (!user) {
-				throw new APIError("Unauthorized", 401)
-			}
+			const user = getMockSession()
 
-			const subscription = await getActiveSubscription(user.user.id)
-			if (!subscription) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Active subscription required",
-					},
 					{ status: 403 },
 				)
 			}
 			const body = await request.json()
 			const { query } = requestSchema.parse(body)
 
-			if (!(await canMakeQuery(user.user.id, "tgscan"))) {
+			if (!(await canMakeMockQuery())) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
-			await userQueryUsed(user.user.id, "tgscan")
+			await mockUserQueryUsed()
 
 			const response = await fetch(TGSCAN_SEARCH_API_URL, {
 				method: "POST",

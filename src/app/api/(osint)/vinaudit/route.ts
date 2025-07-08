@@ -1,10 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
-import { headers } from "next/headers"
-import { canMakeQuery, userQueryUsed } from "@/lib/query"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+// Mock query functions imported above
 import { APIError } from "@/lib/utils"
 import { z } from "zod"
-import { getActiveSubscription } from "@/lib/subscription"
 
 export type VehicleSpecs = {
 	VIN: string
@@ -98,15 +96,12 @@ const VINAUDIT_PASS = process.env.VINAUDIT_PASS || ""
 
 export async function POST(request: NextRequest) {
 	try {
-		const user = await auth.api.getSession({ headers: await headers() })
+		const user = getMockSession()
 		if (!user) throw new APIError("Unauthorized", 401)
 
-		const subscription = await getActiveSubscription(user.user.id)
-		if (!subscription) {
-			return NextResponse.json({ success: false, error: "Active subscription required" }, { status: 403 })
 		}
 
-		if (!(await canMakeQuery(user.user.id, "vinaudit"))) {
+		if (!(await canMakeMockQuery())) {
 			throw new APIError("Query limit exceeded", 429)
 		}
 
@@ -118,7 +113,7 @@ export async function POST(request: NextRequest) {
 			throw new APIError("Vinaudit authentication failed", 401)
 		}
 
-		await userQueryUsed(user.user.id, "vinaudit")
+		await mockUserQueryUsed()
 
 		if (reportType === "pdf") {
 			return await handlePdfReport(vin, cookies)
@@ -132,12 +127,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
 	try {
-		const user = await auth.api.getSession({ headers: await headers() })
+		const user = getMockSession()
 		if (!user) throw new APIError("Unauthorized", 401)
 
-		const subscription = await getActiveSubscription(user.user.id)
-		if (!subscription) {
-			return NextResponse.json({ success: false, error: "Active subscription required" }, { status: 403 })
 		}
 
 		const { searchParams } = new URL(request.url)
@@ -159,11 +151,11 @@ export async function GET(request: NextRequest) {
 			throw new APIError("Invalid VIN format", 400)
 		}
 
-		if (!(await canMakeQuery(user.user.id, "vinaudit"))) {
+		if (!(await canMakeMockQuery())) {
 			throw new APIError("Query limit exceeded", 429)
 		}
 
-		await userQueryUsed(user.user.id, "vinaudit")
+		await mockUserQueryUsed()
 
 		if (reportType === "pdf") {
 			const { cookies } = await getVinauditSession()

@@ -1,10 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
-import { headers } from "next/headers"
-import { canMakeQuery, userQueryUsed } from "@/lib/query"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+// Mock query functions imported above
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
-import { getActiveSubscription } from "@/lib/subscription"
 
 const HOUSE_LOOKUP_API_URL = "http://rapek.ink:8000/api/house_lookup"
 const HOUSE_LOOKUP_API_KEY = process.env.HOUSE_LOOKUP_API_KEY || "c0130c44559b56b1a684d57688f88d68"
@@ -16,18 +14,8 @@ const requestSchema = z.object({
 export async function POST(request: NextRequest) {
 	if (!isApiChecker(request)) {
 		try {
-			const user = await auth.api.getSession({ headers: await headers() })
-			if (!user) {
-				throw new APIError("Unauthorized", 401)
-			}
+			const user = getMockSession()
 
-			const subscription = await getActiveSubscription(user.user.id)
-			if (!subscription) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Active subscription required",
-					},
 					{ status: 403 },
 				)
 			}
@@ -39,11 +27,11 @@ export async function POST(request: NextRequest) {
 				throw new APIError("Address is required", 400)
 			}
 
-			if (!(await canMakeQuery(user.user.id, "reiskip"))) {
+			if (!(await canMakeMockQuery())) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
-			await userQueryUsed(user.user.id, "reiskip")
+			await mockUserQueryUsed()
 
 			const searchResponse = await fetch(HOUSE_LOOKUP_API_URL, {
 				method: "POST",
