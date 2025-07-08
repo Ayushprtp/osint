@@ -1,0 +1,353 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+// Mock query functions imported above
+import { APIError, isApiChecker } from "@/lib/utils"
+import { z } from "zod"
+import fetch from "node-fetch"
+
+const requestSchema = z.object({
+	query: z.string().min(1),
+	searchType: z.enum(["Leaks", "DiscordID"]),
+})
+
+interface OsintSolutionsError {
+	error?: string
+	message?: string
+}
+
+export async function GET(request: NextRequest) {
+	if (!isApiChecker(request)) {
+		try {
+			const user = getMockSession()
+
+					{ status: 403 },
+				)
+			}
+
+			const searchParams = request.nextUrl.searchParams
+			const query = searchParams.get("query")
+			const apikey = searchParams.get("apikey")
+
+			if (!query) {
+				throw new APIError("Query parameter is required", 400)
+			}
+
+			requestSchema.parse({ query })
+
+			if (!(await canMakeMockQuery())) {
+				throw new APIError("Query limit exceeded", 429)
+			}
+
+			await mockUserQueryUsed()
+
+			const url = `https://osintsolutions.org/api/leaks?apikey=${process.env.OSINTSOLUTIONS_API_KEY}&query=${encodeURIComponent(query)}`
+
+			const response = await fetch(url)
+
+			if (!response.ok) {
+				throw new APIError(response.statusText, response.status)
+			}
+
+			const data = await response.json()
+			return NextResponse.json({ success: true, data })
+		} catch (error) {
+			if (error instanceof z.ZodError) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Invalid request parameters",
+						details: error.errors,
+					},
+					{ status: 400 },
+				)
+			}
+
+			if (error instanceof APIError) {
+				return NextResponse.json({ success: false, error: error.message }, { status: error.statusCode })
+			}
+
+			console.error("OSINT Solutions API error:", error)
+			return NextResponse.json(
+				{
+					success: false,
+					error: "An error occurred while processing your request",
+				},
+				{ status: 500 },
+			)
+		}
+	} else {
+		try {
+			const searchParams = request.nextUrl.searchParams
+			const query = searchParams.get("query")
+
+			if (!query) {
+				throw new APIError("Query parameter is required", 400)
+			}
+
+			requestSchema.parse({ query })
+
+			const url = `https://osintsolutions.org/api/leaks?apikey=${process.env.OSINTSOLUTIONS_API_KEY}&query=${encodeURIComponent(query)}`
+
+			const response = await fetch(url)
+
+			if (!response.ok) {
+				throw new APIError(response.statusText, response.status)
+			}
+
+			const data = await response.json()
+			return NextResponse.json({ success: true, data })
+		} catch (error) {
+			if (error instanceof z.ZodError) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Invalid request parameters",
+						details: error.errors,
+					},
+					{ status: 400 },
+				)
+			}
+
+			if (error instanceof APIError) {
+				return NextResponse.json({ success: false, error: error.message }, { status: error.statusCode })
+			}
+
+			console.error("OSINT Solutions API error:", error)
+			return NextResponse.json(
+				{
+					success: false,
+					error: "An error occurred while processing your request",
+				},
+				{ status: 500 },
+			)
+		}
+	}
+}
+
+export async function POST(request: NextRequest) {
+	if (!isApiChecker(request)) {
+		try {
+			const userSession = getMockSession()
+			if (!userSession?.user?.id) {
+				throw new APIError("Unauthorized", 401)
+			}
+			const userId = userSession.user.id
+
+					{ status: 403 },
+				)
+			}
+
+			const body = await request.json()
+			const { query, searchType } = requestSchema.parse(body)
+
+			if (!(await canMakeQuery(userId, "osintsolutions"))) {
+				throw new APIError(`Query limit exceeded for OSINT Solutions (${searchType})`, 429)
+			}
+
+			await userQueryUsed(userId, "osintsolutions")
+
+			let apiUrl = process.env.OSINTSOLUTIONS_API_URL || "https://osintsolutions.org/api/leaks"
+			if (searchType === "DiscordID") {
+				apiUrl =
+					process.env.OSINTSOLUTIONS_DISCORD_API_URL ||
+					"https://osintsolutions.org/api/searchusygdytafsdytasfdastdfytasdtrasdidhfuyfdgyd"
+			}
+
+			const apiKey = process.env.OSINTSOLUTIONS_API_KEY
+
+			if (!apiKey) {
+				console.error("OSINTSOLUTIONS_API_KEY is not set.")
+				throw new APIError("API key for OSINT Solutions is not configured.", 500)
+			}
+
+			const externalApiUrl = `${apiUrl}?apikey=${apiKey}&query=${encodeURIComponent(query)}`
+
+			const response = await fetch(externalApiUrl, {
+				method: "GET",
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "application/json",
+				},
+			})
+
+			if (!response.ok) {
+				let errorBody = "Failed to fetch data from OSINT Solutions."
+				try {
+					const tempError = (await response.json()) as OsintSolutionsError
+					errorBody = tempError.error || tempError.message || response.statusText
+				} catch (e) {}
+				throw new APIError(errorBody, response.status)
+			}
+
+			const responseData = (await response.json()) as any
+
+			if (searchType === "Leaks" && responseData.status !== "success") {
+				throw new APIError(responseData.message || "OSINT Solutions API returned an error for Leaks search.", 500)
+			}
+
+			let actualResultsData
+
+			if (searchType === "DiscordID") {
+				if (responseData && Array.isArray(responseData.results)) {
+					actualResultsData = responseData.results
+				} else if (Array.isArray(responseData)) {
+					actualResultsData = responseData
+				} else {
+					console.warn(
+						"DiscordID response from external API was not in the expected format or no 'results' array found. Response:",
+						responseData,
+					)
+					actualResultsData = []
+				}
+			} else {
+				actualResultsData = responseData.data
+			}
+
+			if (!Array.isArray(actualResultsData)) {
+				console.warn(
+					`Data being sent to client for searchType '${searchType}' was not an array. ` +
+						`Original external API response: ${JSON.stringify(responseData)}. ` +
+						`Attempted extraction: ${JSON.stringify(actualResultsData)}. Defaulting to empty array.`,
+				)
+				actualResultsData = []
+			}
+
+			return NextResponse.json({ success: true, data: actualResultsData })
+		} catch (error) {
+			console.error("Error in osintsolutions route:", error)
+
+			if (error instanceof z.ZodError) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Invalid request data",
+						details: error.errors,
+					},
+					{ status: 400 },
+				)
+			}
+
+			if (error instanceof APIError) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: error.message,
+					},
+					{ status: error.statusCode },
+				)
+			}
+
+			return NextResponse.json(
+				{
+					success: false,
+					error: "An error occurred while processing your request.",
+				},
+				{ status: 500 },
+			)
+		}
+	} else {
+		try {
+			const body = await request.json()
+			const { query, searchType } = requestSchema.parse(body)
+
+			let apiUrl = process.env.OSINTSOLUTIONS_API_URL || "https://osintsolutions.org/api/leaks"
+			if (searchType === "DiscordID") {
+				apiUrl =
+					process.env.OSINTSOLUTIONS_DISCORD_API_URL ||
+					"https://osintsolutions.org/api/searchusygdytafsdytasfdastdfytasdtrasdidhfuyfdgyd"
+			}
+
+			const apiKey = process.env.OSINTSOLUTIONS_API_KEY
+
+			if (!apiKey) {
+				console.error("OSINTSOLUTIONS_API_KEY is not set.")
+				throw new APIError("API key for OSINT Solutions is not configured.", 500)
+			}
+
+			const externalApiUrl = `${apiUrl}?apikey=${apiKey}&query=${encodeURIComponent(query)}`
+
+			const response = await fetch(externalApiUrl, {
+				method: "GET",
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "application/json",
+				},
+			})
+
+			if (!response.ok) {
+				let errorBody = "Failed to fetch data from OSINT Solutions."
+				try {
+					const tempError = (await response.json()) as OsintSolutionsError
+					errorBody = tempError.error || tempError.message || response.statusText
+				} catch (e) {}
+				throw new APIError(errorBody, response.status)
+			}
+
+			const responseData = (await response.json()) as any
+
+			if (searchType === "Leaks" && responseData.status !== "success") {
+				throw new APIError(responseData.message || "OSINT Solutions API returned an error for Leaks search.", 500)
+			}
+
+			let actualResultsData
+
+			if (searchType === "DiscordID") {
+				if (responseData && Array.isArray(responseData.results)) {
+					actualResultsData = responseData.results
+				} else if (Array.isArray(responseData)) {
+					actualResultsData = responseData
+				} else {
+					console.warn(
+						"DiscordID response from external API was not in the expected format or no 'results' array found. Response:",
+						responseData,
+					)
+					actualResultsData = []
+				}
+			} else {
+				actualResultsData = responseData.data
+			}
+
+			if (!Array.isArray(actualResultsData)) {
+				console.warn(
+					`Data being sent to client for searchType '${searchType}' was not an array. ` +
+						`Original external API response: ${JSON.stringify(responseData)}. ` +
+						`Attempted extraction: ${JSON.stringify(actualResultsData)}. Defaulting to empty array.`,
+				)
+				actualResultsData = []
+			}
+
+			return NextResponse.json({ success: true, data: actualResultsData })
+		} catch (error) {
+			console.error("Error in osintsolutions route:", error)
+
+			if (error instanceof z.ZodError) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Invalid request data",
+						details: error.errors,
+					},
+					{ status: 400 },
+				)
+			}
+
+			if (error instanceof APIError) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: error.message,
+					},
+					{ status: error.statusCode },
+				)
+			}
+
+			return NextResponse.json(
+				{
+					success: false,
+					error: "An error occurred while processing your request.",
+				},
+				{ status: 500 },
+			)
+		}
+	}
+}

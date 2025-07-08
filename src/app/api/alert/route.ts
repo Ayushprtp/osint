@@ -1,29 +1,15 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/auth"
-import { headers } from "next/headers"
-import { db } from "@/db"
-import { alerts } from "@/db/schema"
-import { desc } from "drizzle-orm"
-import { APIError } from "@/lib/utils"
 
 export async function GET(_: Request) {
-	const userSession = await auth.api.getSession({
-		headers: await headers(),
-	})
-
-	if (!userSession) {
-		throw new APIError("Unauthorized", 401)
-	}
-
+	// Authentication disabled - returning mock alert data
 	try {
-		const [data] = await db
-			.select({ text: alerts.text, createdAt: alerts.createdAt })
-			.from(alerts)
-			.orderBy(desc(alerts.createdAt))
-			.limit(1)
+		const mockData = {
+			text: "Welcome to the OSINT Dashboard - Authentication has been disabled for easy access!",
+			createdAt: new Date().toISOString()
+		}
 
-		return NextResponse.json({ success: true, data })
+		return NextResponse.json({ success: true, data: mockData })
 	} catch (error) {
-		throw new APIError("Internal Server Error", 500)
+		return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 })
 	}
 }

@@ -1,0 +1,45 @@
+import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+import { type NextRequest, NextResponse } from "next/server"
+import { APIError, isApiChecker } from "@/lib/utils"
+import { z } from "zod"
+
+const requestSchema = z.object({
+	query: z.string().min(1),
+})
+
+export async function POST(request: NextRequest) {
+	const body = await request.json()
+	const { query } = requestSchema.parse(body)
+
+	if (!isApiChecker(request)) {
+		try {
+			// Authentication disabled - using mock session
+			const user = getMockSession()
+
+			if (!(await canMakeMockQuery())) {
+				throw new APIError("Query limit exceeded", 429)
+			}
+
+			await mockUserQueryUsed()
+
+			// API call logic would go here
+			const mockResponse = { message: "API disabled for demo", query }
+			
+			return NextResponse.json({ success: true, data: mockResponse })
+		} catch (error) {
+			if (error instanceof z.ZodError) {
+				throw new APIError("Invalid request", 400)
+			}
+
+			if (error instanceof APIError) {
+				throw new APIError(error.message, error.statusCode)
+			}
+
+			throw new APIError("Internal server error", 500)
+		}
+	}
+
+	// For API checker requests
+	const mockResponse = { message: "API disabled for demo", query }
+	return NextResponse.json({ success: true, data: mockResponse })
+}

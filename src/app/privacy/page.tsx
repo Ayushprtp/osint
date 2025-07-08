@@ -8,15 +8,13 @@ import { Button } from "@/components/ui/button"
 
 const fadeInUpVariant = {
 	hidden: { opacity: 0, y: 20 },
-	visible: (index: number) => ({
+	visible: {
 		opacity: 1,
 		y: 0,
 		transition: {
 			duration: 0.7,
-			ease: [0.22, 1, 0.36, 1],
-			delay: 0.1 * index,
 		},
-	}),
+	},
 }
 
 export default function PrivacyPolicy() {

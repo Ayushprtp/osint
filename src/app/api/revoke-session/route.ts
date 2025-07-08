@@ -1,20 +1,33 @@
-import { authClient } from "@/client"
-import { type NextRequest, NextResponse } from "next/server"
-import { headers } from "next/headers"
-import { auth } from "@/auth"
-import { APIError } from "@/lib/utils"
+import { NextResponse } from "next/server"
 
-export async function POST(_: NextRequest) {
-	const session = await auth.api.getSession({ headers: await headers() })
-	if (!session) {
-		throw new APIError("Unauthorized", 401)
-	}
+export async function GET() {
+    // Authentication disabled - admin functionality not available
+    return NextResponse.json({ 
+        success: false, 
+        error: "Admin functionality disabled - authentication system has been removed" 
+    }, { status: 501 })
+}
 
-	try {
-		await authClient.revokeSessions()
-		return NextResponse.json({ success: true })
-	} catch (error) {
-		console.error("Error revoking sessions:", error)
-		return NextResponse.json({ error: "Failed to revoke sessions" }, { status: 500 })
-	}
+export async function POST() {
+    // Authentication disabled - admin functionality not available
+    return NextResponse.json({ 
+        success: false, 
+        error: "Admin functionality disabled - authentication system has been removed" 
+    }, { status: 501 })
+}
+
+export async function PATCH() {
+    // Authentication disabled - admin functionality not available
+    return NextResponse.json({ 
+        success: false, 
+        error: "Admin functionality disabled - authentication system has been removed" 
+    }, { status: 501 })
+}
+
+export async function DELETE() {
+    // Authentication disabled - admin functionality not available
+    return NextResponse.json({ 
+        success: false, 
+        error: "Admin functionality disabled - authentication system has been removed" 
+    }, { status: 501 })
 }
