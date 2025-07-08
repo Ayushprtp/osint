@@ -1,0 +1,18 @@
+[Unit]
+Description=OSINT Dashboard API Checker
+After=network.target
+
+[Service]
+Type=simple
+User=user
+WorkingDirectory=/home/user/osint-dashboard
+ExecStart=/home/user/osint-dashboard/scripts/run-api-check.sh
+Restart=on-failure
+RestartSec=5
+
+[Timer]
+OnCalendar=*/5 * * * *
+Unit=api-checker.service
+
+[Install]
+WantedBy=multi-user.target 

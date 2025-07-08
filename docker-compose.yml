@@ -1,0 +1,56 @@
+services:
+  osint-dashboard:
+    container_name: osint-dashboard
+    hostname: dashboard.osint.local
+    build: .
+    expose:
+      - "3000"
+    restart: always
+    networks:
+      - osint
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres
+    hostname: postgres.osint.local
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
+    networks:
+      - osint
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    depends_on:
+      - osint-dashboard
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-ssl:/etc/nginx/ssl:ro
+    networks:
+      - osint
+    restart: always
+
+networks:
+  osint:
+    external: true
+
+volumes:
+  postgres_data:
