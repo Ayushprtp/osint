@@ -81,7 +81,6 @@ export async function POST(request: NextRequest) {
 				return NextResponse.json(
 					{ error: errorData.message || `API responded with status ${response.status}` },
 					{ status: response.status },
-				)
 			}
 
 			const data = await response.json()
@@ -90,8 +89,6 @@ export async function POST(request: NextRequest) {
 
 		const user = getMockSession()
 
-				{ status: 403 },
-			)
 		}
 
 		if (!(await canMakeMockQuery())) {
@@ -113,7 +110,6 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json(
 				{ error: errorData.message || `API responded with status ${response.status}` },
 				{ status: response.status },
-			)
 		}
 
 		const data = await response.json()

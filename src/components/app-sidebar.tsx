@@ -84,24 +84,19 @@ export function AppSidebar() {
 			x: 0,
 			transition: {
 				duration: 0.2,
-				type: "spring",
-				stiffness: 100,
 			},
 		},
 	}
 
 	const standaloneItemVariants = {
 		hidden: { opacity: 0, x: -20 },
-		visible: (i: number) => ({
+		visible: {
 			opacity: 1,
 			x: 0,
 			transition: {
-				delay: i * 0.03,
 				duration: 0.2,
-				type: "spring",
-				stiffness: 100,
 			},
-		}),
+		},
 	}
 
 	const getItemsByCategory = () => {

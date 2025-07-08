@@ -1,10 +1,9 @@
 import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
-// Mock query functions imported above
 import { type NextRequest, NextResponse } from "next/server"
-import { TGSCAN_SEARCH_API_URL } from "@/lib/text"
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
 
+// Standard schema - customize as needed for each route
 const requestSchema = z.object({
 	query: z.string().min(1),
 })
@@ -12,33 +11,30 @@ const requestSchema = z.object({
 export async function POST(request: NextRequest) {
 	if (!isApiChecker(request)) {
 		try {
+			// Get mock session (authentication disabled)
 			const user = getMockSession()
 
-			}
 			const body = await request.json()
 			const { query } = requestSchema.parse(body)
 
+			// Check query limits
 			if (!(await canMakeMockQuery())) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
+			// Track query usage
 			await mockUserQueryUsed()
 
-			const response = await fetch(TGSCAN_SEARCH_API_URL, {
-				method: "POST",
-				headers: {
-					"Api-Key": process.env.TGSCAN_API_KEY!,
-				},
-				body: `query=${encodeURIComponent(query)}`,
-			})
-
-			if (!response.ok) {
-				throw new APIError(response.statusText, response.status)
+			// Mock response - replace with actual API call
+			const mockData = {
+				query: query,
+				status: "success",
+				message: "Authentication has been disabled - this is a mock response",
+				results: [],
+				timestamp: new Date().toISOString()
 			}
 
-			const data = await response.json()
-
-			return NextResponse.json({ success: true, data })
+			return NextResponse.json({ success: true, data: mockData })
 		} catch (error) {
 			if (error instanceof z.ZodError) {
 				return NextResponse.json(
@@ -48,6 +44,7 @@ export async function POST(request: NextRequest) {
 						details: error.errors,
 					},
 					{ status: 400 },
+				)
 			}
 
 			if (error instanceof APIError) {
@@ -57,35 +54,32 @@ export async function POST(request: NextRequest) {
 						error: error.message,
 					},
 					{ status: error.statusCode },
+				)
 			}
 
 			return NextResponse.json(
 				{
 					success: false,
-					error: "An error occurred while processing your request",
+					error: error instanceof Error ? error.message : "Unknown error occurred",
 				},
 				{ status: 500 },
+			)
 		}
 	} else {
+		// API checker bypass (for monitoring tools)
 		try {
 			const body = await request.json()
 			const { query } = requestSchema.parse(body)
 
-			const response = await fetch(TGSCAN_SEARCH_API_URL, {
-				method: "POST",
-				headers: {
-					"Api-Key": process.env.TGSCAN_API_KEY!,
-				},
-				body: `query=${encodeURIComponent(query)}`,
-			})
-
-			if (!response.ok) {
-				throw new APIError(response.statusText, response.status)
+			const mockData = {
+				query: query,
+				status: "success",
+				message: "API checker bypass - authentication disabled",
+				results: [],
+				timestamp: new Date().toISOString()
 			}
 
-			const data = await response.json()
-
-			return NextResponse.json({ success: true, data })
+			return NextResponse.json({ success: true, data: mockData })
 		} catch (error) {
 			if (error instanceof z.ZodError) {
 				return NextResponse.json(
@@ -95,23 +89,16 @@ export async function POST(request: NextRequest) {
 						details: error.errors,
 					},
 					{ status: 400 },
-			}
-
-			if (error instanceof APIError) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: error.message,
-					},
-					{ status: error.statusCode },
+				)
 			}
 
 			return NextResponse.json(
 				{
 					success: false,
-					error: "An error occurred while processing your request",
+					error: error instanceof Error ? error.message : "Unknown error occurred",
 				},
 				{ status: 500 },
+			)
 		}
 	}
 }

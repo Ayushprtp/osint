@@ -16,8 +16,6 @@ export async function POST(request: NextRequest) {
 		try {
 			const user = getMockSession()
 
-					{ status: 403 },
-				)
 			}
 
 			const body = await request.json()
@@ -48,7 +46,6 @@ export async function POST(request: NextRequest) {
 				throw new APIError(
 					data.message || data.error || `API request failed with status ${searchResponse.status}`,
 					searchResponse.status,
-				)
 			}
 
 			return NextResponse.json({
@@ -64,7 +61,6 @@ export async function POST(request: NextRequest) {
 						details: error.errors,
 					},
 					{ status: 400 },
-				)
 			}
 
 			if (error instanceof APIError) {
@@ -74,7 +70,6 @@ export async function POST(request: NextRequest) {
 						error: error.message,
 					},
 					{ status: error.statusCode },
-				)
 			}
 
 			console.error("House Lookup API error:", error)
@@ -84,7 +79,6 @@ export async function POST(request: NextRequest) {
 					error: "An error occurred while processing your request",
 				},
 				{ status: 500 },
-			)
 		}
 	} else {
 		try {
@@ -110,7 +104,6 @@ export async function POST(request: NextRequest) {
 				throw new APIError(
 					data.message || data.error || `API request failed with status ${searchResponse.status}`,
 					searchResponse.status,
-				)
 			}
 
 			return NextResponse.json({
@@ -126,7 +119,6 @@ export async function POST(request: NextRequest) {
 						details: error.errors,
 					},
 					{ status: 400 },
-				)
 			}
 
 			if (error instanceof APIError) {
@@ -136,7 +128,6 @@ export async function POST(request: NextRequest) {
 						error: error.message,
 					},
 					{ status: error.statusCode },
-				)
 			}
 
 			console.error("House Lookup API error:", error)
@@ -146,7 +137,6 @@ export async function POST(request: NextRequest) {
 					error: "An error occurred while processing your request",
 				},
 				{ status: 500 },
-			)
 		}
 	}
 }

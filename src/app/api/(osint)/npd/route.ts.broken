@@ -26,8 +26,6 @@ export async function POST(request: NextRequest) {
 		try {
 			const user = getMockSession()
 
-					{ status: 403 },
-				)
 			}
 
 			if (!(await canMakeMockQuery())) {
@@ -105,7 +103,6 @@ export async function POST(request: NextRequest) {
 						details: error.errors,
 					},
 					{ status: 400 },
-				)
 			}
 
 			if (error instanceof APIError) {
@@ -115,7 +112,6 @@ export async function POST(request: NextRequest) {
 						error: error.message,
 					},
 					{ status: error.statusCode },
-				)
 			}
 
 			return NextResponse.json(
@@ -124,7 +120,6 @@ export async function POST(request: NextRequest) {
 					error: error instanceof Error ? error.message : "Unknown error occurred",
 				},
 				{ status: 500 },
-			)
 		}
 	} else {
 		try {
@@ -197,7 +192,6 @@ export async function POST(request: NextRequest) {
 						details: error.errors,
 					},
 					{ status: 400 },
-				)
 			}
 
 			if (error instanceof APIError) {
@@ -207,7 +201,6 @@ export async function POST(request: NextRequest) {
 						error: error.message,
 					},
 					{ status: error.statusCode },
-				)
 			}
 
 			return NextResponse.json(
@@ -216,7 +209,6 @@ export async function POST(request: NextRequest) {
 					error: error instanceof Error ? error.message : "Unknown error occurred",
 				},
 				{ status: 500 },
-			)
 		}
 	}
 }

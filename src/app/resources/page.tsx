@@ -270,7 +270,7 @@ export default function ResourcesPage() {
 		visible: {
 			y: 0,
 			opacity: 1,
-			transition: { type: "spring", stiffness: 100 },
+			transition: { duration: 0.3 },
 		},
 	}
 

@@ -60,8 +60,6 @@ export async function POST(request: NextRequest) {
 			} else {
 				const user = getMockSession()
 
-						{ status: 403 },
-					)
 				}
 
 				if (!(await canMakeMockQuery())) {
@@ -151,7 +149,6 @@ export async function POST(request: NextRequest) {
 						details: error.format(),
 					},
 					{ status: 400 },
-				)
 			}
 
 			if (error instanceof APIError) {
@@ -161,7 +158,6 @@ export async function POST(request: NextRequest) {
 						error: error.message,
 					},
 					{ status: error.statusCode },
-				)
 			}
 
 			console.error("OathNet API endpoint unhandled error:", error)
@@ -171,7 +167,6 @@ export async function POST(request: NextRequest) {
 					error: "An error occurred while processing your request",
 				},
 				{ status: 500 },
-			)
 		}
 	} else {
 		try {
@@ -248,7 +243,6 @@ export async function POST(request: NextRequest) {
 						details: error.format(),
 					},
 					{ status: 400 },
-				)
 			}
 
 			if (error instanceof APIError) {
@@ -258,7 +252,6 @@ export async function POST(request: NextRequest) {
 						error: error.message,
 					},
 					{ status: error.statusCode },
-				)
 			}
 
 			console.error("OathNet API endpoint unhandled error:", error)
@@ -268,7 +261,6 @@ export async function POST(request: NextRequest) {
 					error: "An error occurred while processing your request",
 				},
 				{ status: 500 },
-			)
 		}
 	}
 }

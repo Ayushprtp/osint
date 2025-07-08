@@ -20,8 +20,6 @@ export async function GET(request: NextRequest) {
 		try {
 			const user = getMockSession()
 
-					{ status: 403 },
-				)
 			}
 
 			const searchParams = request.nextUrl.searchParams
@@ -59,7 +57,6 @@ export async function GET(request: NextRequest) {
 						details: error.errors,
 					},
 					{ status: 400 },
-				)
 			}
 
 			if (error instanceof APIError) {
@@ -73,7 +70,6 @@ export async function GET(request: NextRequest) {
 					error: "An error occurred while processing your request",
 				},
 				{ status: 500 },
-			)
 		}
 	} else {
 		try {
@@ -105,7 +101,6 @@ export async function GET(request: NextRequest) {
 						details: error.errors,
 					},
 					{ status: 400 },
-				)
 			}
 
 			if (error instanceof APIError) {
@@ -119,7 +114,6 @@ export async function GET(request: NextRequest) {
 					error: "An error occurred while processing your request",
 				},
 				{ status: 500 },
-			)
 		}
 	}
 }
@@ -133,8 +127,6 @@ export async function POST(request: NextRequest) {
 			}
 			const userId = userSession.user.id
 
-					{ status: 403 },
-				)
 			}
 
 			const body = await request.json()
@@ -196,7 +188,6 @@ export async function POST(request: NextRequest) {
 					console.warn(
 						"DiscordID response from external API was not in the expected format or no 'results' array found. Response:",
 						responseData,
-					)
 					actualResultsData = []
 				}
 			} else {
@@ -208,7 +199,6 @@ export async function POST(request: NextRequest) {
 					`Data being sent to client for searchType '${searchType}' was not an array. ` +
 						`Original external API response: ${JSON.stringify(responseData)}. ` +
 						`Attempted extraction: ${JSON.stringify(actualResultsData)}. Defaulting to empty array.`,
-				)
 				actualResultsData = []
 			}
 
@@ -224,7 +214,6 @@ export async function POST(request: NextRequest) {
 						details: error.errors,
 					},
 					{ status: 400 },
-				)
 			}
 
 			if (error instanceof APIError) {
@@ -234,7 +223,6 @@ export async function POST(request: NextRequest) {
 						error: error.message,
 					},
 					{ status: error.statusCode },
-				)
 			}
 
 			return NextResponse.json(
@@ -243,7 +231,6 @@ export async function POST(request: NextRequest) {
 					error: "An error occurred while processing your request.",
 				},
 				{ status: 500 },
-			)
 		}
 	} else {
 		try {
@@ -300,7 +287,6 @@ export async function POST(request: NextRequest) {
 					console.warn(
 						"DiscordID response from external API was not in the expected format or no 'results' array found. Response:",
 						responseData,
-					)
 					actualResultsData = []
 				}
 			} else {
@@ -312,7 +298,6 @@ export async function POST(request: NextRequest) {
 					`Data being sent to client for searchType '${searchType}' was not an array. ` +
 						`Original external API response: ${JSON.stringify(responseData)}. ` +
 						`Attempted extraction: ${JSON.stringify(actualResultsData)}. Defaulting to empty array.`,
-				)
 				actualResultsData = []
 			}
 
@@ -328,7 +313,6 @@ export async function POST(request: NextRequest) {
 						details: error.errors,
 					},
 					{ status: 400 },
-				)
 			}
 
 			if (error instanceof APIError) {
@@ -338,7 +322,6 @@ export async function POST(request: NextRequest) {
 						error: error.message,
 					},
 					{ status: error.statusCode },
-				)
 			}
 
 			return NextResponse.json(
@@ -347,7 +330,6 @@ export async function POST(request: NextRequest) {
 					error: "An error occurred while processing your request.",
 				},
 				{ status: 500 },
-			)
 		}
 	}
 }
