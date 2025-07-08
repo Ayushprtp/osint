@@ -1,8 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
-// Mock query functions imported above
+import { auth } from "@/auth"
+import { headers } from "next/headers"
+import { canMakeQuery, userQueryUsed } from "@/lib/query"
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
+import { getActiveSubscription } from "@/lib/subscription"
 
 const INTELVAULT_API_URL = "https://api.intelvault.cc/api/v1/tools/breaches"
 const VALID_SEARCH_FIELDS = [
@@ -38,17 +40,27 @@ export async function POST(request: NextRequest) {
 		const { fields, useWildcard } = requestSchema.parse(body)
 
 		if (!isApiChecker(request)) {
-			const user = getMockSession()
+			const user = await auth.api.getSession({ headers: await headers() })
+			if (!user) {
+				throw new APIError("Unauthorized", 401)
+			}
 
+			const subscription = await getActiveSubscription(user.user.id)
+			if (!subscription) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Active subscription required",
+					},
 					{ status: 403 },
 				)
 			}
 
-			if (!(await canMakeMockQuery())) {
+			if (!(await canMakeQuery(user.user.id, "intelvault"))) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
-			await mockUserQueryUsed()
+			await userQueryUsed(user.user.id, "intelvault")
 		}
 
 		const fieldQueries = fields.map((field) => {

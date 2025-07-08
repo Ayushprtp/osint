@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import IntelXClient from "@/services/intelx/client"
-import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
-// Mock query functions imported above
+import { headers } from "next/headers"
+import { auth } from "@/auth"
+import { canMakeQuery, userQueryUsed } from "@/lib/query"
 import { z } from "zod"
 import { APIError } from "@/lib/utils"
 
@@ -17,12 +18,15 @@ const requestSchema = z.object({
 
 export async function POST(req: NextRequest) {
 	try {
-		const user = getMockSession()
+		const user = await auth.api.getSession({ headers: await headers() })
+		if (!user) {
+			throw new APIError("Unauthorized", 401)
+		}
 
 		const body = await req.json()
 		const params = requestSchema.parse(body)
 
-		if (!(await canMakeMockQuery())) {
+		if (!(await canMakeQuery(user.user.id, "intelx"))) {
 			throw new APIError("Query limit exceeded", 429)
 		}
 
@@ -32,7 +36,7 @@ export async function POST(req: NextRequest) {
 			throw new APIError("No accounts found", 404)
 		}
 
-		await mockUserQueryUsed()
+		await userQueryUsed(user.user.id, "intelx")
 
 		return NextResponse.json({
 			success: true,

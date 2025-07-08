@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+import { auth } from "@/auth"
+import { headers } from "next/headers"
 import { APIError, isApiChecker } from "@/lib/utils"
-// Mock query functions imported above
+import { canMakeQuery, userQueryUsed } from "@/lib/query"
+import { getActiveSubscription } from "@/lib/subscription"
 
 const API_KEY = process.env.GEOVISION_API_KEY
 const API_URL = process.env.GEOVISION_API_URL || "http://176.100.39.202:3939/api/locate"
@@ -10,13 +12,23 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024
 export async function POST(request: NextRequest) {
 	if (!isApiChecker(request)) {
 		try {
-			const user = getMockSession()
+			const user = await auth.api.getSession({ headers: await headers() })
+			if (!user) {
+				throw new APIError("Unauthorized", 401)
+			}
 
+			const subscription = await getActiveSubscription(user.user.id)
+			if (!subscription) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Active subscription required",
+					},
 					{ status: 403 },
 				)
 			}
 
-			if (!(await canMakeMockQuery())) {
+			if (!(await canMakeQuery(user.user.id, "geovision"))) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
@@ -36,7 +48,7 @@ export async function POST(request: NextRequest) {
 				throw new APIError("Geovision API key not configured", 500)
 			}
 
-			await mockUserQueryUsed()
+			await userQueryUsed(user.user.id, "geovision")
 
 			const apiFormData = new FormData()
 

@@ -1,10 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+import { auth } from "@/auth"
+import { headers } from "next/headers"
 import ShodanClient from "@/services/shodan/client"
 import { HttpProxyAgent } from "http-proxy-agent"
-// Mock query functions imported above
+import { canMakeQuery, userQueryUsed } from "@/lib/query"
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
+import { getActiveSubscription } from "@/lib/subscription"
 
 const hostInfoRequestSchema = z.object({
 	type: z.literal("host_info"),
@@ -35,13 +37,23 @@ export async function POST(request: NextRequest) {
 
 	if (!isApiChecker(request)) {
 		try {
-			const user = getMockSession()
+			const user = await auth.api.getSession({ headers: await headers() })
+			if (!user) {
+				throw new APIError("Unauthorized", 401)
+			}
 
+			const subscription = await getActiveSubscription(user.user.id)
+			if (!subscription) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Active subscription required",
+					},
 					{ status: 403 },
 				)
 			}
 
-			if (!(await canMakeMockQuery())) {
+			if (!(await canMakeQuery(user.user.id, "shodan"))) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
@@ -59,7 +71,7 @@ export async function POST(request: NextRequest) {
 				}
 			}
 
-			await mockUserQueryUsed()
+			await userQueryUsed(user.user.id, "shodan")
 
 			let data
 			switch (parsedBody.type) {

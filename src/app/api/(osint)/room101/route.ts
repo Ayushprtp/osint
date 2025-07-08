@@ -1,8 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
-// Mock query functions imported above
+import { auth } from "@/auth"
+import { headers } from "next/headers"
+import { canMakeQuery, userQueryUsed } from "@/lib/query"
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
+import { getActiveSubscription } from "@/lib/subscription"
 
 const requestSchema = z.object({
 	query: z.string().min(1),
@@ -12,8 +14,18 @@ const requestSchema = z.object({
 export async function POST(request: NextRequest) {
 	if (!isApiChecker(request)) {
 		try {
-			const user = getMockSession()
+			const user = await auth.api.getSession({ headers: await headers() })
+			if (!user) {
+				throw new APIError("Unauthorized", 401)
+			}
 
+			const subscription = await getActiveSubscription(user.user.id)
+			if (!subscription) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Active subscription required",
+					},
 					{ status: 403 },
 				)
 			}
@@ -21,11 +33,11 @@ export async function POST(request: NextRequest) {
 			const body = await request.json()
 			const { query, use_case } = requestSchema.parse(body)
 
-			if (!(await canMakeMockQuery())) {
+			if (!(await canMakeQuery(user.user.id, "room101"))) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
-			await mockUserQueryUsed()
+			await userQueryUsed(user.user.id, "room101")
 
 			const apiUrl = "https://api.r00m101.com/analyze"
 			const apiKey = process.env.ROOM101_API_KEY

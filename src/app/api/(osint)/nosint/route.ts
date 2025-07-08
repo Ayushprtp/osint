@@ -1,8 +1,10 @@
-import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
-// Mock query functions imported above
+import { auth } from "@/auth"
+import { canMakeQuery, userQueryUsed } from "@/lib/query"
+import { headers } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
+import { getActiveSubscription } from "@/lib/subscription"
 
 const NOSINT_API_URL = "https://nosint.org/api/v1/search"
 const INTERNAL_CLI_API_KEY = "c2f7e31f-6f8a-4b9c-8d0e-1a2b3c4d5e6f"
@@ -23,17 +25,27 @@ export async function POST(request: NextRequest) {
 			if (internalApiKeyHeader && internalApiKeyHeader === INTERNAL_CLI_API_KEY) {
 				console.log("NoSINT API: CLI access granted via X-Internal-API-Key.")
 			} else {
-				const user = getMockSession()
+				const user = await auth.api.getSession({ headers: await headers() })
+				if (!user) {
+					throw new APIError("Unauthorized", 401)
+				}
 
+				const subscription = await getActiveSubscription(user.user.id)
+				if (!subscription) {
+					return NextResponse.json(
+						{
+							success: false,
+							error: "Active subscription required",
+						},
 						{ status: 403 },
 					)
 				}
 
-				if (!(await canMakeMockQuery())) {
+				if (!(await canMakeQuery(user.user.id, "nosint"))) {
 					throw new APIError("Query limit exceeded", 429)
 				}
 
-				await mockUserQueryUsed()
+				await userQueryUsed(user.user.id, "nosint")
 			}
 
 			const apiKey = process.env.NOSINT_API_KEY

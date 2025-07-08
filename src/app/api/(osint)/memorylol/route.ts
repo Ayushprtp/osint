@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth";
-// Mock query functions imported above;
+import { auth } from "@/auth";
+import { headers } from "next/headers";
+import { canMakeQuery, userQueryUsed } from "@/lib/query";
 import { APIError } from "@/lib/utils";
 import { z } from "zod";
 
@@ -13,16 +14,19 @@ const requestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getMockSession();
+    const user = await auth.api.getSession({ headers: await headers() });
+    if (!user) {
+      throw new APIError("Unauthorized", 401);
+    }
 
     const body = await request.json();
     const { query, type } = requestSchema.parse(body);
 
-    if (!(await canMakeMockQuery())) {
+    if (!(await canMakeQuery(user.user.id, "memorylol"))) {
       throw new APIError("Query limit exceeded", 429);
     }
 
-    await mockUserQueryUsed();
+    await userQueryUsed(user.user.id, "memorylol");
 
     const url = `${MEMORYLOL_API_URL}/${type}/${query}`;
 

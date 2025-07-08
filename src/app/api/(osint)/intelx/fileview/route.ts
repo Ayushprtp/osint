@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import IntelXClient from "@/services/intelx/client"
-import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+import { headers } from "next/headers"
+import { auth } from "@/auth"
 
 const DEVELOPER_API_KEY = "3f7e4567-e89b-12d3-a456-426614174000"
 
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
 
 	if (!isAuthenticated) {
 		try {
-			const session = getMockSession()
+			const session = await auth.api.getSession({ headers: await headers() })
 			if (session) {
 				isAuthenticated = true
 			}

@@ -1,11 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import SnusbaseClient from "@/services/snusbase/client"
-import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
-// Mock query functions imported above
+import { auth } from "@/auth"
+import { headers } from "next/headers"
+import { canMakeQuery, userQueryUsed } from "@/lib/query"
 import { SNUSBASE_VALID_SEARCH_TYPES } from "@/lib/text"
 import { APIError, isApiChecker } from "@/lib/utils"
 import { z } from "zod"
 import { HttpProxyAgent } from "http-proxy-agent"
+import { getActiveSubscription } from "@/lib/subscription"
 
 type SearchType = (typeof SNUSBASE_VALID_SEARCH_TYPES)[number]
 
@@ -45,13 +47,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 			if (!authHeader?.startsWith("Bearer ")) {
 				return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 			}
-			const user = getMockSession()
+			const user = await auth.api.getSession({ headers: await headers() })
+			if (!user) {
+				return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
 			}
+			const subscription = await getActiveSubscription(user.user.id)
+			if (!subscription) {
+				return NextResponse.json({ success: false, error: "Active subscription required" }, { status: 403 })
 			}
-			if (!(await canMakeMockQuery())) {
+			if (!(await canMakeQuery(user.user.id, "snusbase"))) {
 				return NextResponse.json({ success: false, error: "Query limit exceeded" }, { status: 429 })
 			}
-			await mockUserQueryUsed()
+			await userQueryUsed(user.user.id, "snusbase")
 		}
 
 		const { searchQuery, useRegex } =

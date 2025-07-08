@@ -1,8 +1,10 @@
-import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+import { auth } from "@/auth"
 import { APIError, isApiChecker } from "@/lib/utils"
-// Mock query functions imported above
+import { canMakeQuery, userQueryUsed } from "@/lib/query"
+import { headers } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
+import { getActiveSubscription } from "@/lib/subscription"
 
 const requestSchema = z.object({
 	email: z.string().email(),
@@ -15,8 +17,18 @@ const OSINT_API_KEY = process.env.OSINT_API_KEY
 export async function GET(request: NextRequest) {
 	if (!isApiChecker(request)) {
 		try {
-			const user = getMockSession()
+			const user = await auth.api.getSession({ headers: await headers() })
+			if (!user) {
+				throw new APIError("Unauthorized", 401)
+			}
 
+			const subscription = await getActiveSubscription(user.user.id)
+			if (!subscription) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Active subscription required",
+					},
 					{ status: 403 },
 				)
 			}
@@ -30,11 +42,11 @@ export async function GET(request: NextRequest) {
 				module,
 			})
 
-			if (!(await canMakeMockQuery())) {
+			if (!(await canMakeQuery(user.user.id, "osintindustries"))) {
 				throw new APIError("Query limit exceeded", 429)
 			}
 
-			await mockUserQueryUsed()
+			await userQueryUsed(user.user.id, "osintindustries")
 
 			let apiUrl = `${OSINT_API_BASE_URL}/modules/email/${validatedEmail}`
 			if (validatedModule) {

@@ -1,12 +1,21 @@
-import { getMockSession, canMakeMockQuery, mockUserQueryUsed } from "@/lib/mock-auth"
+import { auth } from "@/auth"
+import { headers } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 import { TGSCAN_CREDITS_API_URL } from "@/lib/text"
 import { APIError } from "@/lib/utils"
+import { getActiveSubscription } from "@/lib/subscription"
 
 export async function GET(_: NextRequest) {
 	try {
-		const user = getMockSession()
+		const user = await auth.api.getSession({ headers: await headers() })
+		if (!user) {
+			throw new APIError("Unauthorized", 401)
+		}
 
+		const subscription = await getActiveSubscription(user.user.id)
+		if (!subscription) {
+			throw new APIError("Active subscription required", 403)
+		}
 
 		const response = await fetch(TGSCAN_CREDITS_API_URL, {
 			headers: {
